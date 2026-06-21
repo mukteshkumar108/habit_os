@@ -1,4 +1,4 @@
-# habit_os
+# Habit_os
 
 An open-source task tracker for serious builders who want to stay committed to their goals without getting pulled into distractions.
 
