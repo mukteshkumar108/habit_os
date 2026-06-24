@@ -1,8 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:intl/intl.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_spacing.dart';
 import '../theme/app_typography.dart';
 import '../widgets/calendar_day_cell.dart';
+import '../widgets/responsive_layout.dart';
+import '../state/app_state.dart';
+import 'task_detail_screen.dart';
 
 class CalendarScreen extends StatefulWidget {
   const CalendarScreen({super.key});
@@ -12,15 +17,43 @@ class CalendarScreen extends StatefulWidget {
 }
 
 class _CalendarScreenState extends State<CalendarScreen> {
-  int _selectedDay = 24;
+  late DateTime _selectedDate;
+  late DateTime _currentMonth;
 
-  // October 2023: starts on Sunday (weekday index 6 in Mon-start grid),
-  // 31 days total
-  final int _startOffset = 6; // 6 empty cells before day 1 (Mon-start grid)
-  final int _daysInMonth = 31;
+  @override
+  void initState() {
+    super.initState();
+    final now = DateTime.now();
+    _selectedDate = DateTime(now.year, now.month, now.day);
+    _currentMonth = DateTime(now.year, now.month);
+  }
+
+  int get _daysInMonth => DateTime(_currentMonth.year, _currentMonth.month + 1, 0).day;
+  int get _startOffset => DateTime(_currentMonth.year, _currentMonth.month, 1).weekday - 1;
+
+  void _previousMonth() {
+    setState(() {
+      _currentMonth = DateTime(_currentMonth.year, _currentMonth.month - 1);
+    });
+  }
+
+  void _nextMonth() {
+    setState(() {
+      _currentMonth = DateTime(_currentMonth.year, _currentMonth.month + 1);
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
+    final appState = context.watch<AppState>();
+
+    final selectedTasks = appState.tasks.where((t) {
+      return t.dueDate.year == _selectedDate.year &&
+             t.dueDate.month == _selectedDate.month &&
+             t.dueDate.day == _selectedDate.day;
+    }).toList();
+    selectedTasks.sort((a, b) => a.dueDate.compareTo(b.dueDate));
+
     return Scaffold(
       backgroundColor: AppColors.surface,
       body: SafeArea(
@@ -31,37 +64,39 @@ class _CalendarScreenState extends State<CalendarScreen> {
             top: AppSpacing.stackMd,
             bottom: 120,
           ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Title
-              Text('Calendar', style: AppTypography.headlineLgMobile),
-              const SizedBox(height: AppSpacing.stackMd),
+          child: ResponsiveLayout(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Title
+                Text('Calendar', style: AppTypography.headlineLgMobile),
+                const SizedBox(height: AppSpacing.stackMd),
 
-              // Desktop: side by side
-              LayoutBuilder(
-                builder: (context, constraints) {
-                  if (constraints.maxWidth >= 800) {
-                    return Row(
+                // Desktop: side by side, Mobile: stacked
+                LayoutBuilder(
+                  builder: (context, constraints) {
+                    if (constraints.maxWidth >= 700) {
+                      return Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(child: _buildCalendar()),
+                          const SizedBox(width: 48),
+                          Expanded(child: _buildTaskList(selectedTasks, appState)),
+                        ],
+                      );
+                    }
+                    return Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Expanded(child: _buildCalendar()),
-                        const SizedBox(width: 48),
-                        Expanded(child: _buildTaskList()),
+                        _buildCalendar(),
+                        const SizedBox(height: AppSpacing.stackLg),
+                        _buildTaskList(selectedTasks, appState),
                       ],
                     );
-                  }
-                  return Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _buildCalendar(),
-                      const SizedBox(height: AppSpacing.stackLg),
-                      _buildTaskList(),
-                    ],
-                  );
-                },
-              ),
-            ],
+                  },
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -90,13 +125,13 @@ class _CalendarScreenState extends State<CalendarScreen> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                _buildNavButton(Icons.chevron_left),
+                _buildNavButton(Icons.chevron_left, _previousMonth),
                 Text(
-                  'October 2023',
+                  DateFormat('MMMM yyyy').format(_currentMonth),
                   style: AppTypography.headlineMd
                       .copyWith(color: AppColors.textMain),
                 ),
-                _buildNavButton(Icons.chevron_right),
+                _buildNavButton(Icons.chevron_right, _nextMonth),
               ],
             ),
           ),
@@ -133,10 +168,15 @@ class _CalendarScreenState extends State<CalendarScreen> {
                 return const CalendarDayCell();
               }
               final day = index - _startOffset + 1;
+              final isSelected = day == _selectedDate.day &&
+                                 _currentMonth.month == _selectedDate.month &&
+                                 _currentMonth.year == _selectedDate.year;
               return CalendarDayCell(
                 day: day,
-                isSelected: day == _selectedDay,
-                onTap: () => setState(() => _selectedDay = day),
+                isSelected: isSelected,
+                onTap: () => setState(() {
+                  _selectedDate = DateTime(_currentMonth.year, _currentMonth.month, day);
+                }),
               );
             },
           ),
@@ -145,8 +185,9 @@ class _CalendarScreenState extends State<CalendarScreen> {
     );
   }
 
-  Widget _buildNavButton(IconData icon) {
+  Widget _buildNavButton(IconData icon, VoidCallback onTap) {
     return GestureDetector(
+      onTap: onTap,
       child: Container(
         width: 40,
         height: 40,
@@ -160,42 +201,49 @@ class _CalendarScreenState extends State<CalendarScreen> {
     );
   }
 
-  Widget _buildTaskList() {
+  Widget _buildTaskList(List<dynamic> tasks, AppState appState) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Tasks for Oct $_selectedDay',
+          'Tasks for ${DateFormat('MMM d').format(_selectedDate)}',
           style: AppTypography.headlineMd.copyWith(color: AppColors.textMain),
         ),
         const SizedBox(height: AppSpacing.stackMd),
-        // Completed task
-        _CalendarTaskCard(
-          icon: Icons.check_circle,
-          title: 'Morning Meditation',
-          subtitle: '07:00 AM',
-          isCompleted: true,
-        ),
-        const SizedBox(height: AppSpacing.stackMd),
-        // Pending tasks
-        _CalendarTaskCard(
-          icon: Icons.menu_book,
-          title: 'Study Flutter',
-          subtitle: '10:00 AM - 2 hours',
-        ),
-        const SizedBox(height: AppSpacing.stackMd),
-        _CalendarTaskCard(
-          icon: Icons.fitness_center,
-          title: 'Workout',
-          subtitle: '05:30 PM',
-          trailingIcon: Icons.photo_camera,
-        ),
-        const SizedBox(height: AppSpacing.stackMd),
-        _CalendarTaskCard(
-          icon: Icons.book,
-          title: 'Read 10 Pages',
-          subtitle: '09:00 PM',
-        ),
+        if (tasks.isEmpty)
+          Center(
+            child: Padding(
+              padding: const EdgeInsets.all(32.0),
+              child: Text(
+                'No tasks scheduled for this day.',
+                style: AppTypography.bodyLg.copyWith(color: AppColors.textMuted),
+              ),
+            ),
+          )
+        else
+          ListView.separated(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: tasks.length,
+            separatorBuilder: (context, index) => const SizedBox(height: AppSpacing.stackMd),
+            itemBuilder: (context, index) {
+              final task = tasks[index];
+              return _CalendarTaskCard(
+                icon: IconData(task.iconCodePoint, fontFamily: 'MaterialIcons'),
+                title: task.title,
+                subtitle: DateFormat('h:mm a').format(task.dueDate),
+                isCompleted: task.isCompleted,
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => TaskDetailScreen(task: task),
+                    ),
+                  );
+                },
+              );
+            },
+          ),
       ],
     );
   }
@@ -207,6 +255,7 @@ class _CalendarTaskCard extends StatefulWidget {
   final String subtitle;
   final bool isCompleted;
   final IconData? trailingIcon;
+  final VoidCallback? onTap;
 
   const _CalendarTaskCard({
     required this.icon,
@@ -214,6 +263,7 @@ class _CalendarTaskCard extends StatefulWidget {
     required this.subtitle,
     this.isCompleted = false,
     this.trailingIcon,
+    this.onTap,
   });
 
   @override
@@ -249,6 +299,7 @@ class _CalendarTaskCardState extends State<_CalendarTaskCard> {
       onTapDown: (_) => setState(() => _isPressed = true),
       onTapUp: (_) => setState(() => _isPressed = false),
       onTapCancel: () => setState(() => _isPressed = false),
+      onTap: widget.onTap,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 100),
         transform: Matrix4.translationValues(0, _isPressed ? 2 : 0, 0),

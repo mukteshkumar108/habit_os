@@ -37,21 +37,8 @@ class HabitOsAppBar extends StatelessWidget implements PreferredSizeWidget {
                 color: AppColors.primary,
               ),
             ),
-            // Streak counter
-            Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Text('🔥', style: TextStyle(fontSize: 20)),
-                const SizedBox(width: 4),
-                Text(
-                  '7',
-                  style: AppTypography.headlineMd.copyWith(
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.warningYellow,
-                  ),
-                ),
-              ],
-            ),
+            // Empty box for symmetry
+            const SizedBox(width: 28),
           ],
         ),
       ),

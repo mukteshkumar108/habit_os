@@ -1,13 +1,22 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:image_picker/image_picker.dart';
+import 'dart:io';
+import 'package:flutter/foundation.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_spacing.dart';
 import '../theme/app_typography.dart';
+import '../widgets/responsive_layout.dart';
+import '../state/app_state.dart';
+import '../models/project.dart';
 
 class ProjectsScreen extends StatelessWidget {
   const ProjectsScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final appState = context.watch<AppState>();
+
     return Scaffold(
       backgroundColor: AppColors.background,
       body: Column(
@@ -31,45 +40,52 @@ class ProjectsScreen extends StatelessWidget {
                 top: AppSpacing.stackLg,
                 bottom: 120,
               ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Header
-                  Text(
-                    'My Projects',
-                    style: AppTypography.headlineLg.copyWith(
-                      fontWeight: FontWeight.w800,
+              child: ResponsiveLayout(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Header
+                    Text(
+                      'My Projects',
+                      style: AppTypography.headlineLg.copyWith(
+                        fontWeight: FontWeight.w800,
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    'Manage your active habits and goals',
-                    style: AppTypography.bodyMd
-                        .copyWith(color: AppColors.textMuted),
-                  ),
-                  const SizedBox(height: AppSpacing.stackLg),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Manage your active habits and goals',
+                      style: AppTypography.bodyMd
+                          .copyWith(color: AppColors.textMuted),
+                    ),
+                    const SizedBox(height: AppSpacing.stackLg),
 
-                  // Project grid
-                  LayoutBuilder(
-                    builder: (context, constraints) {
-                      final crossCount = constraints.maxWidth > 600 ? 4 : 2;
-                      return GridView.count(
-                        crossAxisCount: crossCount,
-                        mainAxisSpacing: AppSpacing.stackMd,
-                        crossAxisSpacing: AppSpacing.stackMd,
-                        shrinkWrap: true,
-                        physics: const NeverScrollableScrollPhysics(),
-                        childAspectRatio: 0.95,
-                        children: const [
-                          _DashboardProjectCard(title: 'Morning Routine'),
-                          _DashboardProjectCard(title: 'Deep Work'),
-                          _DashboardProjectCard(title: 'Fitness Goal'),
-                          _DashboardProjectCard(title: 'Reading List'),
-                        ],
-                      );
-                    },
-                  ),
-                ],
+                    // Project grid
+                    LayoutBuilder(
+                      builder: (context, constraints) {
+                        int crossCount = 2;
+                        if (constraints.maxWidth > 600) crossCount = 3;
+                        if (constraints.maxWidth > 900) crossCount = 4;
+                        
+                        return GridView.builder(
+                          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                            crossAxisCount: crossCount,
+                            mainAxisSpacing: AppSpacing.stackMd,
+                            crossAxisSpacing: AppSpacing.stackMd,
+                            childAspectRatio: 0.95,
+                          ),
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          itemCount: appState.projects.length,
+                          itemBuilder: (context, index) {
+                            return _DashboardProjectCard(
+                              project: appState.projects[index],
+                            );
+                          },
+                        );
+                      },
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
@@ -106,11 +122,10 @@ class ProjectsScreen extends StatelessWidget {
   }
 }
 
-/// A project card for the dashboard grid with dashed border placeholder.
 class _DashboardProjectCard extends StatefulWidget {
-  final String title;
+  final Project project;
 
-  const _DashboardProjectCard({required this.title});
+  const _DashboardProjectCard({required this.project});
 
   @override
   State<_DashboardProjectCard> createState() => _DashboardProjectCardState();
@@ -118,6 +133,15 @@ class _DashboardProjectCard extends StatefulWidget {
 
 class _DashboardProjectCardState extends State<_DashboardProjectCard> {
   bool _isPressed = false;
+
+  Future<void> _pickImage() async {
+    final picker = ImagePicker();
+    final XFile? image = await picker.pickImage(source: ImageSource.gallery);
+    
+    if (image != null && mounted) {
+      context.read<AppState>().addProjectPhoto(widget.project.id, image.path);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -152,9 +176,34 @@ class _DashboardProjectCardState extends State<_DashboardProjectCard> {
                 ],
         ),
         child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            // Dashed placeholder area
+            // Top Row: Icon & Camera
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Icon(
+                  IconData(widget.project.iconCodePoint, fontFamily: 'MaterialIcons'),
+                  color: Color(widget.project.iconBorderColorValue),
+                ),
+                GestureDetector(
+                  onTap: _pickImage,
+                  child: Container(
+                    padding: const EdgeInsets.all(6),
+                    decoration: BoxDecoration(
+                      color: AppColors.surfaceContainerHigh,
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.photo_camera,
+                      size: 16,
+                      color: AppColors.primary,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            // Middle: Photos or Empty State
             Expanded(
               child: Container(
                 width: double.infinity,
@@ -164,44 +213,49 @@ class _DashboardProjectCardState extends State<_DashboardProjectCard> {
                   border: Border.all(
                     color: AppColors.outlineVariant,
                     width: 2,
-                    strokeAlign: BorderSide.strokeAlignInside,
                   ),
                 ),
-                child: CustomPaint(
-                  painter: _DashedBorderPainter(),
-                  child: const Center(
-                    child: Icon(
-                      Icons.image,
-                      size: 32,
-                      color: AppColors.textMuted,
-                    ),
-                  ),
-                ),
+                clipBehavior: Clip.hardEdge,
+                child: widget.project.photoPaths.isEmpty
+                    ? Center(
+                        child: Text(
+                          'No memories yet',
+                          style: AppTypography.labelMd.copyWith(color: AppColors.textMuted),
+                        ),
+                      )
+                    : GridView.builder(
+                        padding: const EdgeInsets.all(4),
+                        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 2,
+                          crossAxisSpacing: 4,
+                          mainAxisSpacing: 4,
+                        ),
+                        itemCount: widget.project.photoPaths.length,
+                        itemBuilder: (context, i) {
+                          final path = widget.project.photoPaths[i];
+                          return ClipRRect(
+                            borderRadius: BorderRadius.circular(4),
+                            child: kIsWeb 
+                                ? Image.network(path, fit: BoxFit.cover)
+                                : Image.file(File(path), fit: BoxFit.cover),
+                          );
+                        },
+                      ),
               ),
             ),
             const SizedBox(height: AppSpacing.stackSm),
             // Title
             Text(
-              widget.title,
+              widget.project.title,
               style: AppTypography.headlineMd
                   .copyWith(color: AppColors.textMain, fontSize: 16),
               textAlign: TextAlign.center,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
           ],
         ),
       ),
     );
   }
-}
-
-/// Painter for dashed border effect on project cards.
-class _DashedBorderPainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    // Border is handled by the Container decoration for simplicity;
-    // the dashed effect is visually approximated by the outline-variant border.
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
