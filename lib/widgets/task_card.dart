@@ -63,11 +63,7 @@ class TaskCard extends StatelessWidget {
             ),
           ),
           // Drag indicator
-          const Icon(
-            Icons.drag_indicator,
-            color: AppColors.surfaceDim,
-            size: 24,
-          ),
+          Icon(Icons.drag_indicator, color: AppColors.surfaceDim, size: 24),
         ],
       ),
     );

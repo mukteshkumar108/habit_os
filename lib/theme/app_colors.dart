@@ -3,8 +3,18 @@ import 'package:flutter/material.dart';
 class AppColors {
   AppColors._();
 
+  static bool _darkMode = false;
+
+  static void setDarkMode(bool enabled) {
+    _darkMode = enabled;
+  }
+
+  static bool get isDarkMode => _darkMode;
+
   // Primary
-  static const Color primary = Color(0xFF2B6C00);
+  static const Color primaryLight = Color(0xFF2B6C00);
+  static Color get primary =>
+      _darkMode ? const Color(0xFF78E43A) : primaryLight;
   static const Color primaryContainer = Color(0xFF58CC02);
   static const Color primaryFixed = Color(0xFF87FE45);
   static const Color primaryFixedDim = Color(0xFF6BE026);
@@ -40,36 +50,54 @@ class AppColors {
   static const Color onError = Color(0xFFFFFFFF);
   static const Color onErrorContainer = Color(0xFF93000A);
 
-  // Surface
-  static const Color surface = Color(0xFFF9F9F9);
-  static const Color surfaceBright = Color(0xFFF9F9F9);
-  static const Color surfaceDim = Color(0xFFDADADA);
-  static const Color surfaceVariant = Color(0xFFE2E2E2);
-  static const Color surfaceContainer = Color(0xFFEEEEEE);
-  static const Color surfaceContainerLow = Color(0xFFF3F3F3);
-  static const Color surfaceContainerHigh = Color(0xFFE8E8E8);
-  static const Color surfaceContainerHighest = Color(0xFFE2E2E2);
-  static const Color surfaceContainerLowest = Color(0xFFFFFFFF);
-  static const Color surfaceTint = Color(0xFF2B6C00);
-  static const Color onSurface = Color(0xFF1A1C1C);
-  static const Color onSurfaceVariant = Color(0xFF3F4A36);
-  static const Color inverseSurface = Color(0xFF2F3131);
-  static const Color inverseOnSurface = Color(0xFFF1F1F1);
+  // Theme-aware surfaces
+  static Color get surface =>
+      _darkMode ? const Color(0xFF121712) : const Color(0xFFF9F9F9);
+  static Color get surfaceBright =>
+      _darkMode ? const Color(0xFF1B211B) : const Color(0xFFF9F9F9);
+  static Color get surfaceDim =>
+      _darkMode ? const Color(0xFF0C100C) : const Color(0xFFDADADA);
+  static Color get surfaceVariant =>
+      _darkMode ? const Color(0xFF303830) : const Color(0xFFE2E2E2);
+  static Color get surfaceContainer =>
+      _darkMode ? const Color(0xFF1B211B) : const Color(0xFFEEEEEE);
+  static Color get surfaceContainerLow =>
+      _darkMode ? const Color(0xFF171C17) : const Color(0xFFF3F3F3);
+  static Color get surfaceContainerHigh =>
+      _darkMode ? const Color(0xFF242B24) : const Color(0xFFE8E8E8);
+  static Color get surfaceContainerHighest =>
+      _darkMode ? const Color(0xFF303830) : const Color(0xFFE2E2E2);
+  static Color get surfaceContainerLowest =>
+      _darkMode ? const Color(0xFF151A15) : const Color(0xFFFFFFFF);
+  static const Color surfaceTint = primaryLight;
+  static Color get onSurface =>
+      _darkMode ? const Color(0xFFF1F5EF) : const Color(0xFF1A1C1C);
+  static Color get onSurfaceVariant =>
+      _darkMode ? const Color(0xFFCDD6C9) : const Color(0xFF3F4A36);
+  static Color get inverseSurface =>
+      _darkMode ? const Color(0xFFE8ECE6) : const Color(0xFF2F3131);
+  static Color get inverseOnSurface =>
+      _darkMode ? const Color(0xFF202520) : const Color(0xFFF1F1F1);
 
   // Background
-  static const Color background = Color(0xFFF9F9F9);
-  static const Color onBackground = Color(0xFF1A1C1C);
+  static Color get background => surface;
+  static Color get onBackground => onSurface;
 
   // Outline
-  static const Color outline = Color(0xFF6F7B64);
-  static const Color outlineVariant = Color(0xFFBECBB1);
+  static Color get outline =>
+      _darkMode ? const Color(0xFF899685) : const Color(0xFF6F7B64);
+  static Color get outlineVariant =>
+      _darkMode ? const Color(0xFF3C493A) : const Color(0xFFBECBB1);
 
   // Semantic / Custom
   static const Color successGreen = Color(0xFF58CC02);
   static const Color warningYellow = Color(0xFFFFC800);
+  static const Color lateOrange = Color(0xFFFF9600);
   static const Color errorRed = Color(0xFFFF4B4B);
   static const Color infoBlue = Color(0xFF1CB0F6);
   static const Color borderDepth = Color(0xFF46A302);
-  static const Color textMain = Color(0xFF4B4B4B);
-  static const Color textMuted = Color(0xFFAFAFAF);
+  static Color get textMain =>
+      _darkMode ? const Color(0xFFE9EDE7) : const Color(0xFF4B4B4B);
+  static Color get textMuted =>
+      _darkMode ? const Color(0xFF9CA79A) : const Color(0xFFAFAFAF);
 }

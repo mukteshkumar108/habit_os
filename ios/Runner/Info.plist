@@ -26,6 +26,10 @@
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<key>NSCameraUsageDescription</key>
+	<string>Habit OS uses the camera to capture daily proof for your projects.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Habit OS lets you choose a photo as daily proof for your projects.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

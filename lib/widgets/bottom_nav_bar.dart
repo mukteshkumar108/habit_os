@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../theme/app_colors.dart';
+
 import '../theme/app_typography.dart';
 
 /// Shared bottom navigation bar with 3 tabs: Home, Calendar, Projects.
@@ -16,11 +16,13 @@ class AppBottomNavBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Container(
-      decoration: const BoxDecoration(
-        color: AppColors.surface,
+      key: const ValueKey('bottom-nav-surface'),
+      decoration: BoxDecoration(
+        color: colorScheme.surface,
         border: Border(
-          top: BorderSide(color: AppColors.surfaceContainerHighest, width: 4),
+          top: BorderSide(color: colorScheme.surfaceContainerHighest, width: 4),
         ),
       ),
       child: SafeArea(
@@ -71,39 +73,38 @@ class _NavItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final selectedColor = colorScheme.primary;
+    final unselectedColor = colorScheme.onSurfaceVariant.withAlpha(180);
     return GestureDetector(
       onTap: onTap,
       behavior: HitTestBehavior.opaque,
       child: AnimatedContainer(
+        key: ValueKey('bottom-nav-item-$label'),
         duration: const Duration(milliseconds: 200),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         decoration: BoxDecoration(
-          color: isActive
-              ? AppColors.surfaceContainer
-              : Colors.transparent,
+          color: isActive ? colorScheme.surfaceContainer : Colors.transparent,
           borderRadius: BorderRadius.circular(16),
           border: isActive
-              ? const Border(
-                  bottom: BorderSide(
-                    color: AppColors.borderDepth,
-                    width: 4,
-                  ),
-                )
+              ? Border(bottom: BorderSide(color: selectedColor, width: 4))
               : null,
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(
+              key: ValueKey('bottom-nav-icon-$label'),
               icon,
               size: 28,
-              color: isActive ? AppColors.successGreen : AppColors.textMuted,
+              color: isActive ? selectedColor : unselectedColor,
             ),
             const SizedBox(height: 2),
             Text(
+              key: ValueKey('bottom-nav-label-$label'),
               label,
               style: AppTypography.labelLg.copyWith(
-                color: isActive ? AppColors.successGreen : AppColors.textMuted,
+                color: isActive ? selectedColor : unselectedColor,
               ),
             ),
           ],

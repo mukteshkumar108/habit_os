@@ -43,3 +43,7 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Private product strategy and AI context library
+/Task_Tracker_AI_Brain/
+/task_tracker_context.private.json

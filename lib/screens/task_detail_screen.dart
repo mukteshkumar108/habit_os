@@ -6,6 +6,9 @@ import '../theme/app_spacing.dart';
 import '../theme/app_typography.dart';
 import '../models/task.dart';
 import '../state/app_state.dart';
+import '../utils/material_icon.dart';
+
+enum TaskDetailAction { complete }
 
 class TaskDetailScreen extends StatelessWidget {
   final Task task;
@@ -20,10 +23,21 @@ class TaskDetailScreen extends StatelessWidget {
       orElse: () => task,
     );
 
-    final project = appState.projects.firstWhere(
-      (p) => p.id == currentTask.projectId,
-      orElse: () => appState.projects.first,
+    final matchingProjects = appState.projects.where(
+      (project) => project.projectId == currentTask.projectId,
     );
+    final project = matchingProjects.isEmpty ? null : matchingProjects.first;
+    final projectBackground = project == null
+        ? AppColors.surfaceContainerHigh
+        : Color(project.iconBgColorValue);
+    final projectBorder = project == null
+        ? AppColors.infoBlue
+        : Color(project.iconBorderColorValue);
+    final canComplete = appState.canCompleteTask(currentTask);
+    final isScheduledForFuture =
+        currentTask.status == TaskStatus.pending && !canComplete;
+    final isLateAction = appState.willCompleteLate(currentTask);
+    final canDelete = appState.canDeleteTask(currentTask);
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -31,8 +45,8 @@ class TaskDetailScreen extends StatelessWidget {
         backgroundColor: AppColors.surface,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: AppColors.primary),
-          onTap: () => Navigator.pop(context),
+          icon: Icon(Icons.arrow_back, color: AppColors.primary),
+          onPressed: () => Navigator.pop(context),
         ),
         title: Text(
           'Task Details',
@@ -55,17 +69,14 @@ class TaskDetailScreen extends StatelessWidget {
                         width: 64,
                         height: 64,
                         decoration: BoxDecoration(
-                          color: Color(project.iconBgColorValue),
+                          color: projectBackground,
                           borderRadius: BorderRadius.circular(16),
                           border: Border(
-                            bottom: BorderSide(
-                              color: Color(project.iconBorderColorValue),
-                              width: 4,
-                            ),
+                            bottom: BorderSide(color: projectBorder, width: 4),
                           ),
                         ),
                         child: Icon(
-                          IconData(currentTask.iconCodePoint, fontFamily: 'MaterialIcons'),
+                          materialIconFromCodePoint(currentTask.iconCodePoint),
                           size: 32,
                           color: AppColors.primary,
                         ),
@@ -82,7 +93,7 @@ class TaskDetailScreen extends StatelessWidget {
                               ),
                             ),
                             Text(
-                              project.title,
+                              currentTask.projectName ?? 'No Project',
                               style: AppTypography.bodyLg.copyWith(
                                 color: AppColors.textMuted,
                               ),
@@ -96,10 +107,10 @@ class TaskDetailScreen extends StatelessWidget {
 
                   // Status
                   _buildDetailRow(
-                    icon: currentTask.isCompleted ? Icons.check_circle : Icons.pending,
-                    iconColor: currentTask.isCompleted ? AppColors.successGreen : AppColors.warningYellow,
+                    icon: _statusIcon(currentTask.status),
+                    iconColor: _statusColor(currentTask.status),
                     label: 'Status',
-                    value: currentTask.isCompleted ? 'Completed' : 'Pending',
+                    value: currentTask.status.label,
                   ),
                   const SizedBox(height: AppSpacing.stackMd),
 
@@ -108,7 +119,9 @@ class TaskDetailScreen extends StatelessWidget {
                     icon: Icons.calendar_today,
                     iconColor: AppColors.infoBlue,
                     label: 'Due Date',
-                    value: DateFormat('MMM dd, yyyy').format(currentTask.dueDate),
+                    value: DateFormat(
+                      'MMM dd, yyyy',
+                    ).format(currentTask.dueDate),
                   ),
                   const SizedBox(height: AppSpacing.stackMd),
                   _buildDetailRow(
@@ -123,11 +136,20 @@ class TaskDetailScreen extends StatelessWidget {
                   _buildDetailRow(
                     icon: Icons.notifications,
                     iconColor: AppColors.warningYellow,
-                    label: 'Reminder',
-                    value: currentTask.reminderMinutes > 0
-                        ? '${currentTask.reminderMinutes} mins before'
-                        : 'No reminder',
+                    label: 'Reminder Frequency',
+                    value: currentTask.reminderFrequencyLabel,
                   ),
+                  if (currentTask.completedAt != null) ...[
+                    const SizedBox(height: AppSpacing.stackMd),
+                    _buildDetailRow(
+                      icon: Icons.done_all_rounded,
+                      iconColor: _statusColor(currentTask.status),
+                      label: 'Completion Time',
+                      value: DateFormat(
+                        'MMM dd, yyyy • hh:mm a',
+                      ).format(currentTask.completedAt!),
+                    ),
+                  ],
                   const SizedBox(height: AppSpacing.stackLg),
 
                   // Notes
@@ -146,64 +168,96 @@ class TaskDetailScreen extends StatelessWidget {
                       decoration: BoxDecoration(
                         color: AppColors.surfaceContainerLow,
                         borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: AppColors.surfaceVariant, width: 2),
+                        border: Border.all(
+                          color: AppColors.surfaceVariant,
+                          width: 2,
+                        ),
                       ),
                       child: Text(
                         currentTask.notes,
-                        style: AppTypography.bodyLg.copyWith(color: AppColors.textMain),
+                        style: AppTypography.bodyLg.copyWith(
+                          color: AppColors.textMain,
+                        ),
                       ),
                     ),
                     const SizedBox(height: AppSpacing.stackLg),
                   ],
 
                   // Action Buttons
-                  SizedBox(
-                    width: double.infinity,
-                    height: 56,
-                    child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: currentTask.isCompleted
-                            ? AppColors.surfaceVariant
-                            : AppColors.primaryContainer,
-                        foregroundColor: currentTask.isCompleted
-                            ? AppColors.textMain
-                            : AppColors.onPrimaryContainer,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16),
+                  if (canComplete || isScheduledForFuture)
+                    SizedBox(
+                      width: double.infinity,
+                      height: 56,
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: isLateAction
+                              ? AppColors.lateOrange
+                              : AppColors.primaryContainer,
+                          foregroundColor: isLateAction
+                              ? AppColors.onSecondary
+                              : AppColors.onPrimaryContainer,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          elevation: 2,
                         ),
-                        elevation: currentTask.isCompleted ? 0 : 2,
-                      ),
-                      onPressed: () {
-                        context.read<AppState>().toggleTaskCompletion(currentTask.id);
-                      },
-                      child: Text(
-                        currentTask.isCompleted ? 'Mark as Pending' : 'Complete Task',
-                        style: AppTypography.headlineMd,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: AppSpacing.stackMd),
-                  SizedBox(
-                    width: double.infinity,
-                    height: 56,
-                    child: OutlinedButton(
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: AppColors.errorRed,
-                        side: const BorderSide(color: AppColors.errorRed, width: 2),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16),
+                        onPressed: canComplete
+                            ? () => Navigator.pop(
+                                context,
+                                TaskDetailAction.complete,
+                              )
+                            : null,
+                        child: Text(
+                          isScheduledForFuture
+                              ? 'Available on ${DateFormat('MMM d').format(currentTask.dueDate)}'
+                              : isLateAction
+                              ? 'Complete Late'
+                              : 'Complete Task',
+                          style: AppTypography.headlineMd,
                         ),
                       ),
-                      onPressed: () {
-                        context.read<AppState>().deleteTask(currentTask.id);
-                        Navigator.pop(context);
-                      },
+                    ),
+                  if (canComplete || isScheduledForFuture)
+                    const SizedBox(height: AppSpacing.stackMd),
+                  if (canDelete)
+                    SizedBox(
+                      width: double.infinity,
+                      height: 56,
+                      child: OutlinedButton(
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: AppColors.errorRed,
+                          side: const BorderSide(
+                            color: AppColors.errorRed,
+                            width: 2,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                        ),
+                        onPressed: () =>
+                            _confirmDeleteTask(context, currentTask),
+                        child: Text(
+                          'Delete Task',
+                          style: AppTypography.headlineMd,
+                        ),
+                      ),
+                    )
+                  else
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        color: AppColors.surfaceContainerLow,
+                        borderRadius: BorderRadius.circular(16),
+                      ),
                       child: Text(
-                        'Delete Task',
-                        style: AppTypography.headlineMd,
+                        'This task is part of your calendar history and cannot be deleted after its due time.',
+                        textAlign: TextAlign.center,
+                        style: AppTypography.bodyMd.copyWith(
+                          color: AppColors.textMuted,
+                        ),
                       ),
                     ),
-                  ),
                 ],
               ),
             ),
@@ -211,6 +265,49 @@ class TaskDetailScreen extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  IconData _statusIcon(TaskStatus status) {
+    return switch (status) {
+      TaskStatus.pending => Icons.pending_rounded,
+      TaskStatus.completedOnTime => Icons.check_circle_rounded,
+      TaskStatus.completedLate => Icons.schedule_rounded,
+      TaskStatus.missed => Icons.cancel_rounded,
+    };
+  }
+
+  Color _statusColor(TaskStatus status) {
+    return switch (status) {
+      TaskStatus.pending => AppColors.warningYellow,
+      TaskStatus.completedOnTime => AppColors.successGreen,
+      TaskStatus.completedLate => AppColors.lateOrange,
+      TaskStatus.missed => AppColors.errorRed,
+    };
+  }
+
+  Future<void> _confirmDeleteTask(BuildContext context, Task task) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Delete task?'),
+        content: Text(
+          '"${task.title}" will be permanently deleted and cannot be recovered.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !context.mounted) return;
+    context.read<AppState>().deleteTask(task.id);
+    Navigator.pop(context);
   }
 
   Widget _buildDetailRow({
@@ -233,8 +330,14 @@ class TaskDetailScreen extends StatelessWidget {
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(label, style: AppTypography.labelMd.copyWith(color: AppColors.textMuted)),
-            Text(value, style: AppTypography.bodyLg.copyWith(color: AppColors.textMain)),
+            Text(
+              label,
+              style: AppTypography.labelMd.copyWith(color: AppColors.textMuted),
+            ),
+            Text(
+              value,
+              style: AppTypography.bodyLg.copyWith(color: AppColors.textMain),
+            ),
           ],
         ),
       ],

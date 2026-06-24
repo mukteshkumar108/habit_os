@@ -5,8 +5,8 @@ import '../theme/app_colors.dart';
 /// compresses on press to simulate a 3D button-press effect.
 class TactileCard extends StatefulWidget {
   final Widget child;
-  final Color backgroundColor;
-  final Color borderColor;
+  final Color? backgroundColor;
+  final Color? borderColor;
   final double borderBottomWidth;
   final double borderRadius;
   final VoidCallback? onTap;
@@ -15,8 +15,8 @@ class TactileCard extends StatefulWidget {
   const TactileCard({
     super.key,
     required this.child,
-    this.backgroundColor = AppColors.surfaceContainerLowest,
-    this.borderColor = AppColors.surfaceVariant,
+    this.backgroundColor,
+    this.borderColor,
     this.borderBottomWidth = 6,
     this.borderRadius = 24,
     this.onTap,
@@ -32,6 +32,9 @@ class _TactileCardState extends State<TactileCard> {
 
   @override
   Widget build(BuildContext context) {
+    final backgroundColor =
+        widget.backgroundColor ?? AppColors.surfaceContainerLowest;
+    final borderColor = widget.borderColor ?? AppColors.surfaceVariant;
     return GestureDetector(
       onTapDown: (_) => setState(() => _isPressed = true),
       onTapUp: (_) {
@@ -49,14 +52,14 @@ class _TactileCardState extends State<TactileCard> {
         ),
         padding: widget.padding,
         decoration: BoxDecoration(
-          color: widget.backgroundColor,
+          color: backgroundColor,
           borderRadius: BorderRadius.circular(widget.borderRadius),
           border: Border(
-            top: BorderSide(color: widget.borderColor, width: 2),
-            left: BorderSide(color: widget.borderColor, width: 2),
-            right: BorderSide(color: widget.borderColor, width: 2),
+            top: BorderSide(color: borderColor, width: 2),
+            left: BorderSide(color: borderColor, width: 2),
+            right: BorderSide(color: borderColor, width: 2),
             bottom: BorderSide(
-              color: widget.borderColor,
+              color: borderColor,
               width: _isPressed ? 2 : widget.borderBottomWidth,
             ),
           ),

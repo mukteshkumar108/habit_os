@@ -7,7 +7,7 @@ class AppTypography {
 
   static TextStyle get _baseFont => GoogleFonts.plusJakartaSans();
 
-  static TextStyle displayLg = _baseFont.copyWith(
+  static TextStyle get displayLg => _baseFont.copyWith(
     fontSize: 40,
     height: 1.2,
     fontWeight: FontWeight.w800,
@@ -15,42 +15,42 @@ class AppTypography {
     color: AppColors.onSurface,
   );
 
-  static TextStyle headlineLg = _baseFont.copyWith(
+  static TextStyle get headlineLg => _baseFont.copyWith(
     fontSize: 32,
     height: 1.3,
     fontWeight: FontWeight.w700,
     color: AppColors.onSurface,
   );
 
-  static TextStyle headlineLgMobile = _baseFont.copyWith(
+  static TextStyle get headlineLgMobile => _baseFont.copyWith(
     fontSize: 24,
     height: 1.3,
     fontWeight: FontWeight.w700,
     color: AppColors.onSurface,
   );
 
-  static TextStyle headlineMd = _baseFont.copyWith(
+  static TextStyle get headlineMd => _baseFont.copyWith(
     fontSize: 20,
     height: 1.4,
     fontWeight: FontWeight.w700,
     color: AppColors.onSurface,
   );
 
-  static TextStyle bodyLg = _baseFont.copyWith(
+  static TextStyle get bodyLg => _baseFont.copyWith(
     fontSize: 18,
     height: 1.6,
     fontWeight: FontWeight.w500,
     color: AppColors.onSurface,
   );
 
-  static TextStyle bodyMd = _baseFont.copyWith(
+  static TextStyle get bodyMd => _baseFont.copyWith(
     fontSize: 16,
     height: 1.6,
     fontWeight: FontWeight.w500,
     color: AppColors.textMain,
   );
 
-  static TextStyle labelLg = _baseFont.copyWith(
+  static TextStyle get labelLg => _baseFont.copyWith(
     fontSize: 14,
     height: 1.0,
     fontWeight: FontWeight.w700,
@@ -58,7 +58,7 @@ class AppTypography {
     color: AppColors.textMuted,
   );
 
-  static TextStyle labelMd = _baseFont.copyWith(
+  static TextStyle get labelMd => _baseFont.copyWith(
     fontSize: 12,
     height: 1.0,
     fontWeight: FontWeight.w600,
